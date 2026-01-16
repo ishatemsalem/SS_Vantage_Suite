@@ -1,7 +1,5 @@
 ﻿# SS Vantage Suite (v1.0.0)
 
-### Rapid Character Workflows for Blender 4.2+
-
 **SS Vantage Suite** is a semi-polished collection of tools I made during my time at **Neuron Studios**. This is a direct port of the workflows I used to hit studio deadlines for high-profile commissions.
 
 > **Developer’s Note:** As of this moment, I have only had time to implement my legacy character creation scripts grouped under the codename "OrthoMetric". Expansions planned.
@@ -40,3 +38,4 @@ SS OrthoMetric tab on the n-panel should appear, containing Character Creation W
 * Lots of love
 
 * Also lots of tears blender's API is hilariously inconsistent
+

@@ -22,7 +22,7 @@ Calibration edge-cases require sanding, if your character's face in the imported
 1. Download the latest release `.zip`.
 2. In Blender, go to **Edit > Preferences > Add-ons**.
 3. Click **Install...** and select the zip file.
-4. Enable **SS Vantage Suite**.
+4. Enable **SS_Vantage_Suite**.
 SS OrthoMetric tab on the n-panel should appear, containing Character Creation Workflow tools
 
 ## Technical Stack
@@ -32,10 +32,11 @@ SS OrthoMetric tab on the n-panel should appear, containing Character Creation W
 * **Compatibility:** Optimized for Blender 4.2.0
 
 
-## 🏗 Built With
+## Built With
 * Python (Blender API)
-* Unfiltered Egyptian ingenius
+* Pure Unfiltered Egyptian Genius
 * Lots of love
 
 * Also lots of tears blender's API is hilariously inconsistent
+
 

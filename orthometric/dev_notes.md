@@ -1,6 +1,6 @@
 SS Vantage Suite
 
-OrthoMetric Conventions: A blender plugin that takes in front and side view images of a head, and after tweaking a premade base mesh very close to the structure of the character to be later inputted into something like metahuman or manually sculpted.
+OrthoMetric Conventions: first script of the suite. allows easy setup of viewport, references, quick camera switching, and tweaking
 
 Hierarchy: 
 SS_Vantage_Suite
@@ -19,9 +19,10 @@ SS_Vantage_Suite
 inside heads.blend:
 
 Collection: OM_Assets (OrthoMetric Assets)
+		OM_Archives (Retired/Future Updates)
 
-Low Poly Object: OM_Cage (Mesh Name: mesh_cage)
-High Poly Object: OM_Head_High (Mesh Name: mesh_head_high)
+OM_Assets:
+Low Poly Object: OM_Cage_Low_poly (Mesh Name: mesh_cage_low_poly)
 Anchors: OM_Anchor_TearDuct, OM_Anchor_Chin
 
 Sequence of events:
@@ -29,7 +30,7 @@ Sequence of events:
 User is in lobby, they can choose between adding a front view and a side view
 
 stage one:
-	Imports objects "OM_Cage", "OM_Anchor_TearDuct", "OM_Anchor_Chin"
+	Imports objects "OM_Cage_Low_Poly", "OM_Anchor_TearDuct", "OM_Anchor_Chin"
 	front view camera is created at (0, 2.0, 1.47) (90, 0, 180)
 	front view image is created at (0, 0, 1.47) (90, 0, 180) fl 50.0 scale 0.9
 	fl slider appears in n-menu changing fl automatically moves image according to equation:
@@ -99,14 +100,12 @@ User can use box with + button in lobby to add another view, going into configur
 			1- helper2 is scaled in xyz so distance between OM_Dup_TearDuct & OM_Dup_Chin is same as OM_Anchor_TearDuct & OM_Anchor_Chin
 			2- helper2 is moved along xyz so avg coord between the dup is same as original empties
 			3-Scene is cleaned up, Dups are removed
-	
-	Then once user presses "Return to lobby" it returns to lobby, and button used to enter the same view again returns the same menu with same controls items except it does not ask for an image to be imported+
 
 
 
 TO DO: 
-	- Focal length offset do NOT follow a formula to keep the object the same size as I change focal length
-	- Add a mirror 180 for additional images
+	- Focal length offset do NOT follow a formula to keep the object the same size for non-front/side views. i have a feel sqrt has a part in this
+	- Add a mirror 180 for additional images. useless tho ill probs remove from side view before i add to additional views
 
 	-Commence stage 4. god help me
 
@@ -114,4 +113,4 @@ stage 4 can possibly have multiple steps.
 step 1: decide critical values eg. as eye size and lining up, via points, using front and side views
 step 2: select vertex and *pull*
 step 3: if 45 degree image available for example, user gets to decide rotation values of camera always pointing towards 0,0,1.47
-Laplacian smoothing: keyword
+Laplacian smoothing: keywordS

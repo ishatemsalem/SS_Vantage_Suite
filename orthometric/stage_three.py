@@ -18,7 +18,8 @@ class ORTHOMETRIC_OT_add_custom_view(bpy.types.Operator):
         # 1. add entry to ui list
         item = props.custom_views.add()
         item.name = f"View {len(props.custom_views)}"
-        
+        item.view_type = 'CUSTOM' # so the siblings can share the temp list
+
         # generate unique names
         idx = len(props.custom_views)
         n_master = f"OM_Master_{idx}"
@@ -88,6 +89,24 @@ class ORTHOMETRIC_OT_add_custom_view(bpy.types.Operator):
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
 
+def del_hierarchy (obj):
+    if obj is None: return
+    children = [child for child in obj.children]
+    for child in children:
+        del_hierarchy(child)
+
+    data = obj.data
+    obj_type = obj.type
+
+    try:
+        bpy.data.objects.remove(obj, do_unlink=True)
+    except:
+        pass
+    
+    if data:
+        if obj_type == 'CAMERA':
+            bpy.data.cameras.remove(data) # Note for self: remopving image = bad cause image could be used elsewhere
+
 class ORTHOMETRIC_OT_remove_custom_view(bpy.types.Operator):
     # remove selected view and its hierarchy
     bl_idname = "orthometric.remove_custom_view"
@@ -97,16 +116,35 @@ class ORTHOMETRIC_OT_remove_custom_view(bpy.types.Operator):
     def execute(self, context):
         props = context.scene.orthometric
         idx = props.active_view_index
+
         try:
             item = props.custom_views[idx]
-            for n in [item.obj_name_master, item.obj_name_minor, item.obj_name_cam, item.obj_name_img]:
-                obj = bpy.data.objects.get(n)
-                if obj: bpy.data.objects.remove(obj, do_unlink=True)
+
+#           # Check type
+            if item.view_type == 'FRONT':
+                props.has_front = False
+            elif item.view_type == 'SIDE':
+                props.has_side = False
+            
+            master_obj = bpy.data.objects.get(item.obj_name_master)
+            if master_obj:
+                del_hierarchy(master_obj)
+            else:
+                for n in [item.obj_name_minor, item.obj_name_cam, item.obj_name_img]:
+                    obj = bpy.data.objects.get(n)
+                    if obj: bpy.data.objects.remove(obj, do_unlink=True)
+
             props.custom_views.remove(idx)
             props.active_view_index = max(0, idx - 1)
+
         except IndexError:
             pass
         return {'FINISHED'}
+
+def hide_hierarchy(obj, hide_value):
+    obj.hide_viewport = hide_value
+    for child in obj.children:
+        hide_hierarchy(child, hide_value)
 
 class ORTHOMETRIC_OT_enter_config(bpy.types.Operator):
     # enter config mode for selected view
@@ -115,7 +153,31 @@ class ORTHOMETRIC_OT_enter_config(bpy.types.Operator):
     
     def execute(self, context):
         props = context.scene.orthometric
+        
+        if len(props.custom_views) == 0:
+            return {'CANCELLED'}
+
         item = props.custom_views[props.active_view_index]
+
+        for view_item in props.custom_views:
+            master = bpy.data.objects.get(view_item.obj_name_master)
+            if master:
+                # hide master & children if not the active item and vice versa
+                if view_item != item:
+                    master.hide_viewport = True
+                    for child in master.children:
+                        hide_hierarchy(child, True)
+                else:
+                    master.hide_viewport = False
+                    for child in master.children:
+                        hide_hierarchy(child, False)
+
+        # Branch logic to view type
+        if item.view_type == 'FRONT':
+            return bpy.ops.orthometric.edit_front()
+        
+        elif item.view_type == 'SIDE':
+            return bpy.ops.orthometric.edit_side()
         
         # 1. switch cam
         cam = bpy.data.objects.get(item.obj_name_cam)

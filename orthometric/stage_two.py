@@ -15,6 +15,11 @@ class ORTHOMETRIC_OT_init_side(bpy.types.Operator):
         scene = context.scene
         props = scene.orthometric
 
+        # master empty
+        bpy.ops.object.empty_add(type='PLAIN_AXES', location=(0, 0, 0))
+        master = context.active_object
+        master.name = "OM_Master_Side"
+
         # camera
         cam_data = bpy.data.cameras.new(name="Ortho_Cam_Side")
         cam_obj = bpy.data.objects.new("Ortho_Cam_Side", cam_data)
@@ -55,6 +60,21 @@ class ORTHOMETRIC_OT_init_side(bpy.types.Operator):
                 area.spaces[0].region_3d.view_perspective = 'CAMERA'
 
         img_obj.rotation_mode = 'XYZ'
+
+        # Master becomes supreme ruler of all
+        cam_obj.parent = master
+        img_obj.parent = master
+        img_obj.matrix_parent_inverse = master.matrix_world.inverted()
+
+        # add to list
+        item = props.custom_views.add()
+        item.name = "Side View"
+        item.view_type = 'SIDE'
+        item.obj_name_master = master.name
+        item.obj_name_cam = cam_obj.name
+        
+        # set active index to this new item
+        props.active_view_index = len(props.custom_views) - 1
 
         props.stage = 'SIDE_SETUP'
         return {'FINISHED'}
@@ -143,6 +163,8 @@ class ORTHOMETRIC_OT_apply_calibration_side(bpy.types.Operator):
         
         dup_td = bpy.data.objects.get("OM_Dup_TearDuct")
         dup_chin = bpy.data.objects.get("OM_Dup_Chin")
+
+        master = bpy.data.objects.get("OM_Master_Side")
         
         # helper2 generated at 0, 0, 1.47
         bpy.ops.object.empty_add(type='SINGLE_ARROW', location=(0, 0, 1.47))
@@ -200,6 +222,12 @@ class ORTHOMETRIC_OT_apply_calibration_side(bpy.types.Operator):
             # apply final pos from helper to image directly
             side_img.location.y = helper2.location.y
             side_img.location.z = helper2.location.z
+
+        
+        # master becomes regains custody
+        if master:
+            side_img.parent = master
+            side_img.matrix_parent_inverse = master.matrix_world.inverted()
 
         # taking out the trash :]
         bpy.data.objects.remove(dup_td, do_unlink=True)

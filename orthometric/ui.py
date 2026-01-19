@@ -3,10 +3,12 @@ import bpy
 class ORTHOMETRIC_UL_view_list(bpy.types.UIList):
     # list of custom views
     def draw_item(self, context, layout, data, item, icon, active_data, active_propname, index):
-        # allow renaming directly
+        # allow renaming directly oNLY FOR CUSTOM TYPES
         if self.layout_type in {'DEFAULT', 'COMPACT'}:
-            layout.prop(item, "name", text="", emboss=False, icon='CAMERA_DATA')
-        elif self.layout_type == 'GRID':
+            if item.view_type == 'CUSTOM':
+                layout.prop(item, "name", text="", emboss=False, icon='CAMERA_DATA')
+            else:
+                layout.label(text=item.name, icon='CAMERA_DATA')
             layout.alignment = 'CENTER'
             layout.label(text="", icon='CAMERA_DATA')
 
@@ -23,29 +25,24 @@ class ORTHOMETRIC_PT_main(bpy.types.Panel):
 
         # stage 0: lobby
         if props.stage == 'START':
+            if not (props.has_front and props.has_side):
+                box = layout.box()
+                box.label(text="Primary Views:")
+                col = box.column(align=True)
+            
+            # front view logic, hide if exist
+                if not props.has_front:
+                    col.operator("orthometric.init_front", text="Add Front View", icon='AXIS_FRONT')
+
+                # side view logic, hide if exist
+                if not props.has_side:
+                    col.operator("orthometric.init_side", text="Add Side View", icon='AXIS_SIDE')
+
+                box.separator()
+
+            # unified view list
             box = layout.box()
-            box.label(text="Lobby: Asset Manager")
-            
-            col = box.column(align=True)
-            
-            # front view logic
-            if not props.has_front:
-                col.operator("orthometric.init_front", text="Add Front View", icon='AXIS_FRONT')
-            else:
-                col.operator("orthometric.edit_front", text="Open Front Controller", icon='SETTINGS')
-
-            col.separator()
-
-            # side view logic
-            if not props.has_side:
-                col.operator("orthometric.init_side", text="Add Side View", icon='AXIS_SIDE')
-            else:
-                col.operator("orthometric.edit_side", text="Open Side Controller", icon='SETTINGS')
-
-            box.separator()
-
-            # stage 3: custom views list
-            box.label(text="Additional Views:")
+            box.label(text="Views:")
             row = box.row()
             row.template_list("ORTHOMETRIC_UL_view_list", "custom_views", props, "custom_views", props, "active_view_index")
             
@@ -114,7 +111,7 @@ class ORTHOMETRIC_PT_main(bpy.types.Panel):
             box.label(text="Image Adjustment", icon='IMAGE_DATA')
             
             col = box.column(align=True)
-            col.operator("orthometric.mirror_side", text="Mirror Image (180°)", icon='MOD_MIRROR')
+            col.operator("orthometric.mirror_side", text="Mirror Image", icon='MOD_MIRROR')
             col.separator()
             col.operator("orthometric.start_calibration_side", text="Start Calibration", icon='TRACKING_FORWARDS')
 

@@ -3,26 +3,30 @@ import math
 import os
 
 def import_assets(self, context):
+
+    if "OM_Assets" in bpy.data.collections:
+        return True
+
     # append assets from local blend file
     base_path = os.path.dirname(__file__)
     blend_path = os.path.join(base_path, "assets", "heads.blend")
-    
+
     if not os.path.exists(blend_path):
         self.report({'ERROR'}, f"Asset file not found at: {blend_path}")
         return False
-
+    
     with bpy.data.libraries.load(blend_path, link=False) as (data_from, data_to):
         if "OM_Assets" in data_from.collections:
             data_to.collections = ["OM_Assets"]
         else:
             self.report({'ERROR'}, "Collection 'OM_Assets' not found in library")
             return False
-
+        
     for col in data_to.collections:
         if col is not None:
             context.scene.collection.children.link(col)
             for obj in col.objects:
-                if obj.name in ["OM_Cage", "OM_Anchor_TearDuct", "OM_Anchor_Chin"]:
+                if obj.name in ["OM_Cage_Low_Poly", "OM_Anchor_TearDuct", "OM_Anchor_Chin"]:
                     obj.show_in_front = True 
     return True
 
@@ -33,13 +37,17 @@ class ORTHOMETRIC_OT_init_front(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
     
     filepath: bpy.props.StringProperty(subtype="FILE_PATH")
-
     def execute(self, context):
         scene = context.scene
         props = scene.orthometric
 
         if not import_assets(self, context):
             return {'CANCELLED'}
+        
+        # master empty
+        bpy.ops.object.empty_add(type='PLAIN_AXES', location=(0, 0, 0))
+        master = context.active_object
+        master.name = "OM_Master_Front"
 
         # camera setup
         cam_data = bpy.data.cameras.new(name="Ortho_Cam_Front")
@@ -82,6 +90,21 @@ class ORTHOMETRIC_OT_init_front(bpy.types.Operator):
 
         img_obj.rotation_mode = 'XYZ'
         img_obj.rotation_euler = (math.radians(90), 0, math.radians(180))
+
+        # Master becomes supreme ruler of all
+        cam_obj.parent = master
+        img_obj.parent = master
+        img_obj.matrix_parent_inverse = master.matrix_world.inverted()
+
+        # add to list
+        item = props.custom_views.add()
+        item.name = "Front View"
+        item.view_type = 'FRONT'
+        item.obj_name_master = master.name
+        item.obj_name_cam = cam_obj.name
+        
+        # set active index to this new item
+        props.active_view_index = len(props.custom_views) - 1
 
         props.stage = 'FRONT_SETUP'
         return {'FINISHED'}
@@ -134,6 +157,7 @@ class ORTHOMETRIC_OT_confirm_center(bpy.types.Operator):
         props = context.scene.orthometric
         img_obj = bpy.data.objects.get("Ref_Img_Front")
         helper = bpy.data.objects.get("Helper_Center")
+        master = bpy.data.objects.get("OM_Master_Front")
 
         if img_obj and helper:
             img_obj.parent = helper
@@ -144,6 +168,11 @@ class ORTHOMETRIC_OT_confirm_center(bpy.types.Operator):
             img_obj.select_set(True)
             bpy.ops.object.parent_clear(type='CLEAR_KEEP_TRANSFORM')
             bpy.data.objects.remove(helper)
+        
+        # master regains custody
+        if master:
+            img_obj.parent = master
+            img_obj.matrix_parent_inverse = master.matrix_world.inverted()
 
         props.is_centering = False
         return {'FINISHED'}
@@ -209,6 +238,8 @@ class ORTHOMETRIC_OT_apply_calibration(bpy.types.Operator):
         
         dup_td = bpy.data.objects.get("OM_Dup_TearDuct")
         dup_chin = bpy.data.objects.get("OM_Dup_Chin")
+
+        master = bpy.data.objects.get("OM_Master_Front")
         
         # helper2 gen at 0, 0, 1.47
         bpy.ops.object.empty_add(type='SINGLE_ARROW', location=(0, 0, 1.47))
@@ -261,7 +292,7 @@ class ORTHOMETRIC_OT_apply_calibration(bpy.types.Operator):
             # 3. reapply saved world matrix
             fwd_img.matrix_world = matrix_copy
 
-            # whatever you do this line below is the most crucial thing in this entire fucking file my goodness
+            # whatever you do do not edit this line below this is the most crucial thing in this entire fucking file my goodness
             fwd_img.location.z = helper2.location.z
             
         # taking out the trash :]
@@ -272,6 +303,10 @@ class ORTHOMETRIC_OT_apply_calibration(bpy.types.Operator):
         self.report({'INFO'}, "Calibration Complete!")
         
         scene.orthometric.stage = 'FRONT_SETUP' 
+
+        if master:
+                fwd_img.parent = master
+                fwd_img.matrix_parent_inverse = master.matrix_world.inverted()
         
         return {'FINISHED'}
 
@@ -308,7 +343,6 @@ class ORTHOMETRIC_OT_finish_stage_one(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
     
     def execute(self, context):
-        # modified: lobby logic
         props = context.scene.orthometric
         
         # mark front as done

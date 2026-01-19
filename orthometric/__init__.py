@@ -5,7 +5,7 @@ from . import ui, stage_one, stage_two, stage_three
 bl_info = {
     "name": "SS Vantage Suite",
     "author": "Islam Hatem Salem",
-    "version": (1, 0, 0),
+    "version": (1, 0, 1),
     "blender": (4, 2, 0),
     "location": "View3D > N-Panel > SS: OrthoMetric",
     "description": "OrthoMetric Head Matching",
@@ -46,9 +46,6 @@ def update_side_cam(self, context):
         cam.lens = self.focal_length_side
     update_side_cam_pos(self, context)
 
-
-## Stage 3 Updates
-
 def update_stage_3_master(self, context):
     # rotates master controller via sliders
     if self.stage != 'STAGE_3_SETUP': return
@@ -85,12 +82,50 @@ def update_item_cam_settings(self, context):
         if context: 
             context.view_layer.update()
 
-## Property Group
+def hide_hierarchy(obj, visible):
+    if obj:
+        obj.hide_viewport = not visible
+        for child in obj.children:
+            hide_hierarchy(child, visible)
+
+def update_view_visibility(self, context):
+
+    if not self.custom_views:
+        return
+
+    # Loop through all views in list
+    for idx, item in enumerate(self.custom_views):
+        # is_selected?
+        is_active = (idx == self.active_view_index)
+        
+        # Find the master of selected
+        master = bpy.data.objects.get(item.obj_name_master)
+        
+        if master:
+            hide_hierarchy(master, is_active)
+    props = context.scene.orthometric
+    item = props.custom_views[props.active_view_index]
+
+    cam = bpy.data.objects.get(item.obj_name_cam)
+    if cam:
+        context.scene.camera = cam
+        
+    for area in context.screen.areas:
+        if area.type == 'VIEW_3D':
+            area.spaces[0].region_3d.view_perspective = 'CAMERA'
+
+# Property Group
 
 class OrthoViewItem(bpy.types.PropertyGroup):
     # stores data for each custom view
     name: bpy.props.StringProperty(name="View Name", default="New View")
     
+    # diff between kind of item in template list
+    view_type: bpy.props.EnumProperty(
+            items=[('CUSTOM', "Custom", ""), ('FRONT', "Front", ""), ('SIDE', "Side", "")],
+            default='CUSTOM'
+        )
+
     # obj refs
     obj_name_master: bpy.props.StringProperty()
     obj_name_minor: bpy.props.StringProperty()
@@ -157,7 +192,7 @@ class OrthoMetricProperties(bpy.types.PropertyGroup):
 
     # stage 3 props
     custom_views: bpy.props.CollectionProperty(type=OrthoViewItem)
-    active_view_index: bpy.props.IntProperty(name="Index", default=0)
+    active_view_index: bpy.props.IntProperty(name="Index", default=0, update=update_view_visibility)
     
     stage_3_rot_x: bpy.props.FloatProperty(
         name="Rotation X", min=0, max=180, default=0, update=update_stage_3_master
